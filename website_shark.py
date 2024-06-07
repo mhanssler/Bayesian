@@ -2,6 +2,7 @@ import pyshark
 import logging
 import sys
 from datetime import datetime
+import time
 
 def configure_logging():
     logger = logging.getLogger("NetworkMonitor")
@@ -38,12 +39,16 @@ def extract_domains_from_packet(packet):
         pass
     return domains
 
-def monitor_network(interface, logger):
+def monitor_network(interface, duration, logger):
     capture = pyshark.LiveCapture(interface=interface)
     unique_domains = set()
 
     logger.info("Monitoring network traffic...")
+    start_time = time.time()
+    
     for packet in capture.sniff_continuously():
+        if time.time() - start_time > duration:
+            break
         domains = extract_domains_from_packet(packet)
         if domains:
             new_domains = domains - unique_domains
@@ -57,7 +62,8 @@ def monitor_network(interface, logger):
 if __name__ == "__main__":
     logger = configure_logging()
     interface = "wlan0"  # Replace with your WiFi network interface
-    unique_domains = monitor_network(interface, logger)
+    duration = 60  # Duration in seconds (e.g., 60 seconds)
+    unique_domains = monitor_network(interface, duration, logger)
     logger.info("Unique domains monitored:")
     for domain in unique_domains:
         logger.info(domain)
