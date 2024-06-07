@@ -1,6 +1,7 @@
 import pyshark
 import logging
 import sys
+from datetime import datetime
 
 def configure_logging():
     logger = logging.getLogger("NetworkMonitor")
@@ -10,12 +11,19 @@ def configure_logging():
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.DEBUG)
     
+    # Create file handler with yyyymmdd format
+    log_filename = datetime.now().strftime('%Y%m%d') + '.log'
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(logging.DEBUG)
+    
     # Create a logging format
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     stream_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
     
     # Add the handlers to the logger
     logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
     
     return logger
 
@@ -48,7 +56,7 @@ def monitor_network(interface, logger):
 
 if __name__ == "__main__":
     logger = configure_logging()
-    interface = "eth0"  # Replace with your network interface
+    interface = "wlan0"  # Replace with your WiFi network interface
     unique_domains = monitor_network(interface, logger)
     logger.info("Unique domains monitored:")
     for domain in unique_domains:
