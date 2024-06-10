@@ -6,19 +6,19 @@ import time
 
 def configure_logging():
     logger = logging.getLogger("NetworkMonitor")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     
     # Create console handler for streaming
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setLevel(logging.INFO)
     
     # Create file handler with yyyymmdd format
     log_filename = datetime.now().strftime('%Y%m%d') + '.log'
     file_handler = logging.FileHandler(log_filename)
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)
     
     # Create a logging format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
     stream_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
     
@@ -31,16 +31,20 @@ def configure_logging():
 def extract_domains_from_packet(packet):
     domains = set()
     try:
-        if 'http' in packet:
-            domains.add(packet.http.host)
-        if 'ssl' in packet and hasattr(packet.ssl, 'handshake_extensions_server_name'):
-            domains.add(packet.ssl.handshake_extensions_server_name)
+        if hasattr(packet, 'http'):
+            if hasattr(packet.http, 'host'):
+                domain = packet.http.host
+                domains.add(domain)
+        elif hasattr(packet, 'tls'):
+            if hasattr(packet.tls, 'handshake_extensions_server_name'):
+                domain = packet.tls.handshake_extensions_server_name
+                domains.add(domain)
     except AttributeError:
         pass
     return domains
 
 def monitor_network(interface, duration, logger):
-    capture = pyshark.LiveCapture(interface=interface)
+    capture = pyshark.LiveCapture(interface=interface, display_filter='http or tls.handshake.type == 1')
     unique_domains = set()
 
     logger.info("Monitoring network traffic...")
@@ -61,7 +65,7 @@ def monitor_network(interface, duration, logger):
 
 if __name__ == "__main__":
     logger = configure_logging()
-    interface = "wlan0"  # Replace with your WiFi network interface
+    interface = "Wi-Fi"  # Replace with your WiFi network interface name
     duration = 60  # Duration in seconds (e.g., 60 seconds)
     unique_domains = monitor_network(interface, duration, logger)
     logger.info("Unique domains monitored:")
